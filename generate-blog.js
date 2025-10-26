@@ -8,7 +8,7 @@ const BRANCH = process.env.BRANCH || 'main';
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '50', 10);
 const OUTPUT_DIR = 'dist';
 
-// Get commits
+// Get all images from commits with metadata
 async function getCommits() {
   try {
     const git = simpleGit();
@@ -34,14 +34,17 @@ async function getCommits() {
 
     console.log(`Commits after filtering [ignore]: ${filteredCommits.length}`);
 
-    // Get images for each commit
-    const commitsWithImages = await Promise.all(
-      filteredCommits.map(async (commit) => {
-        const images = await getCommitImages(git, commit.hash);
-        return {
+    // Collect all images with their commit metadata
+    const allImages = [];
+    for (const commit of filteredCommits) {
+      const images = await getCommitImages(git, commit.hash);
+      images.forEach((imagePath) => {
+        allImages.push({
+          path: imagePath,
           hash: commit.hash.substring(0, 7),
+          title: commit.message.split('\n')[0],
+          // Unused for now, but kept for potential future use
           author: commit.author_name,
-          email: commit.author_email,
           date: new Date(commit.date).toLocaleString('en-US', {
             year: 'numeric',
             month: '2-digit',
@@ -51,14 +54,12 @@ async function getCommits() {
             second: '2-digit',
             hour12: false,
           }),
-          title: commit.message.split('\n')[0],
           content: commit.body || commit.message.split('\n')[0],
-          images: images,
-        };
-      })
-    );
+        });
+      });
+    }
 
-    return commitsWithImages;
+    return allImages;
   } catch (error) {
     console.error('Error fetching commits:', error.message);
     process.exit(1);
@@ -87,44 +88,31 @@ async function getCommitImages(git, commitHash) {
 }
 
 // Generate HTML
-function generateHTML(commits) {
-  const postsHTML = commits
-    .map(
-      (commit) => `
-    <article class="post">
-      <header>
-        <h2>${escapeHTML(commit.title)}</h2>
-        <div class="meta">
-          <span class="author">${escapeHTML(commit.author)}</span>
-          <span class="date">${commit.date}</span>
-          <span class="commit">#${commit.hash}</span>
-        </div>
-      </header>
-      <div class="content">
-        ${processContent(commit.content)}
+function generateHTML(images) {
+  const gridHTML = images.length > 0 ? `
+    <div class="image-grid">
+      ${images.map((image) => `
+      <div class="image-item">
+        <a href="${escapeHTML(image.path)}" target="_blank">
+          <img src="${escapeHTML(image.path)}" alt="${escapeHTML(image.title)}" loading="lazy" />
+          <div class="image-overlay">
+            <div class="overlay-content">
+              <span class="commit-hash">#${image.hash}</span>
+              <span class="commit-title">${escapeHTML(image.title)}</span>
+            </div>
+          </div>
+        </a>
       </div>
-      ${commit.images && commit.images.length > 0 ? `
-      <div class="image-grid">
-        ${commit.images.map((image) => `
-        <div class="image-item">
-          <a href="${escapeHTML(image)}" target="_blank">
-            <img src="${escapeHTML(image)}" alt="Image from commit" loading="lazy" />
-          </a>
-        </div>
-        `).join('')}
-      </div>
-      ` : ''}
-    </article>
-  `
-    )
-    .join('\n');
+      `).join('')}
+    </div>
+  ` : '<p>No images found in commits.</p>';
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Commit Blog</title>
+  <title>Image Gallery</title>
   <style>
     * {
       margin: 0;
@@ -136,111 +124,53 @@ function generateHTML(commits) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       line-height: 1.6;
       color: #333;
-      background: #f5f5f5;
+      background: #fafafa;
       padding: 20px;
     }
 
     .container {
-      max-width: 800px;
+      max-width: 1200px;
       margin: 0 auto;
-      background: white;
-      padding: 40px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
     }
 
     h1 {
       font-size: 2.5rem;
       margin-bottom: 10px;
-      color: #2c3e50;
+      color: #262626;
+      font-weight: 400;
     }
 
     .subtitle {
-      color: #7f8c8d;
-      margin-bottom: 40px;
-      font-size: 1.1rem;
-    }
-
-    .post {
-      margin-bottom: 50px;
-      padding-bottom: 40px;
-      border-bottom: 1px solid #ecf0f1;
-    }
-
-    .post:last-child {
-      border-bottom: none;
-    }
-
-    .post h2 {
-      font-size: 1.8rem;
-      margin-bottom: 15px;
-      color: #34495e;
-    }
-
-    .meta {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 20px;
-      font-size: 0.9rem;
-      color: #7f8c8d;
-      flex-wrap: wrap;
-    }
-
-    .meta span {
-      display: flex;
-      align-items: center;
-    }
-
-    .author::before {
-      content: '👤 ';
-      margin-right: 5px;
-    }
-
-    .date::before {
-      content: '📅 ';
-      margin-right: 5px;
-    }
-
-    .commit {
-      font-family: 'Courier New', monospace;
-      background: #ecf0f1;
-      padding: 2px 8px;
-      border-radius: 3px;
-    }
-
-    .content {
-      font-size: 1.05rem;
-      color: #555;
-    }
-
-    .content p {
-      margin-bottom: 15px;
-    }
-
-    .content p:empty {
-      display: none;
+      color: #8e8e8e;
+      font-size: 1rem;
     }
 
     .image-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 10px;
-      margin-top: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 28px;
     }
 
     .image-item {
       position: relative;
       aspect-ratio: 1;
       overflow: hidden;
-      background: #f8f9fa;
-      border-radius: 4px;
+      background: #fff;
+      border: 1px solid #dbdbdb;
+      border-radius: 3px;
+      cursor: pointer;
     }
 
     .image-item a {
       display: block;
       width: 100%;
       height: 100%;
-      cursor: pointer;
+      text-decoration: none;
     }
 
     .image-item img {
@@ -248,19 +178,53 @@ function generateHTML(commits) {
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.3s ease;
+      transition: transform 0.2s ease;
     }
 
-    .image-item:hover img {
-      transform: scale(1.05);
+    .image-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .image-item:hover .image-overlay {
+      opacity: 1;
+    }
+
+    .overlay-content {
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .commit-hash {
+      display: block;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      opacity: 0.9;
+    }
+
+    .commit-title {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 500;
     }
 
     footer {
       margin-top: 60px;
       padding-top: 20px;
-      border-top: 2px solid #ecf0f1;
+      border-top: 1px solid #dbdbdb;
       text-align: center;
-      color: #95a5a6;
+      color: #8e8e8e;
       font-size: 0.9rem;
     }
 
@@ -269,21 +233,18 @@ function generateHTML(commits) {
         padding: 10px;
       }
 
-      .container {
-        padding: 20px;
-      }
-
       h1 {
         font-size: 2rem;
       }
 
-      .post h2 {
-        font-size: 1.5rem;
-      }
-
       .image-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 8px;
+        gap: 3px;
+      }
+
+      .image-item {
+        border: none;
+        border-radius: 0;
       }
     }
   </style>
@@ -291,16 +252,16 @@ function generateHTML(commits) {
 <body>
   <div class="container">
     <header>
-      <h1>Commit Blog</h1>
-      <p class="subtitle">A blog generated from git commits</p>
+      <h1>Image Gallery</h1>
+      <p class="subtitle">Generated from git commits</p>
     </header>
 
     <main>
-      ${postsHTML}
+      ${gridHTML}
     </main>
 
     <footer>
-      <p>Generated from ${commits.length} commit${commits.length !== 1 ? 's' : ''}</p>
+      <p>${images.length} image${images.length !== 1 ? 's' : ''} from commit history</p>
     </footer>
   </div>
 </body>
@@ -317,47 +278,26 @@ function escapeHTML(str) {
     .replace(/'/g, '&#039;');
 }
 
-// Process content text: single newlines are ignored, double+ newlines become paragraph breaks
-function processContent(content) {
-  if (!content) return '';
-
-  // Split by double or more newlines to get paragraphs
-  const paragraphs = content.split(/\n\n+/);
-
-  return paragraphs
-    .map((para) => {
-      // Within each paragraph, replace single newlines with spaces
-      const text = para.replace(/\n/g, ' ').trim();
-      return text ? `<p>${escapeHTML(text)}</p>` : '';
-    })
-    .filter((p) => p !== '')
-    .join('');
-}
-
 // Copy images to output directory
-function copyImagesToOutput(commits) {
+function copyImagesToOutput(images) {
   let totalImagesCopied = 0;
 
-  commits.forEach((commit) => {
-    if (commit.images && commit.images.length > 0) {
-      commit.images.forEach((imagePath) => {
-        const sourcePath = path.resolve(imagePath);
-        const destPath = path.join(OUTPUT_DIR, imagePath);
+  images.forEach((image) => {
+    const sourcePath = path.resolve(image.path);
+    const destPath = path.join(OUTPUT_DIR, image.path);
 
-        // Create directory structure if needed
-        const destDir = path.dirname(destPath);
-        if (!fs.existsSync(destDir)) {
-          fs.mkdirSync(destDir, { recursive: true });
-        }
+    // Create directory structure if needed
+    const destDir = path.dirname(destPath);
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
 
-        // Copy image file if it exists
-        if (fs.existsSync(sourcePath)) {
-          fs.copyFileSync(sourcePath, destPath);
-          totalImagesCopied++;
-        } else {
-          console.log(`Warning: Image not found: ${imagePath}`);
-        }
-      });
+    // Copy image file if it exists
+    if (fs.existsSync(sourcePath)) {
+      fs.copyFileSync(sourcePath, destPath);
+      totalImagesCopied++;
+    } else {
+      console.log(`Warning: Image not found: ${image.path}`);
     }
   });
 
@@ -366,27 +306,27 @@ function copyImagesToOutput(commits) {
 
 // Main
 async function main() {
-  console.log('Generating blog from commits...');
+  console.log('Generating image gallery from commits...');
 
-  const commits = await getCommits();
-  console.log(`Found ${commits.length} commits`);
+  const images = await getCommits();
+  console.log(`Found ${images.length} image${images.length !== 1 ? 's' : ''}`);
 
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
   // Copy images to output directory
-  const imagesCopied = copyImagesToOutput(commits);
+  const imagesCopied = copyImagesToOutput(images);
   if (imagesCopied > 0) {
     console.log(`✓ Copied ${imagesCopied} image${imagesCopied !== 1 ? 's' : ''} to ${OUTPUT_DIR}`);
   }
 
-  const html = generateHTML(commits);
+  const html = generateHTML(images);
   const outputPath = path.join(OUTPUT_DIR, 'index.html');
   fs.writeFileSync(outputPath, html, 'utf-8');
 
-  console.log(`✓ Blog generated at ${outputPath}`);
-  console.log(`✓ Total posts: ${commits.length}`);
+  console.log(`✓ Gallery generated at ${outputPath}`);
+  console.log(`✓ Total images: ${images.length}`);
 }
 
 main();
