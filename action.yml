@@ -1,0 +1,45 @@
+name: 'Commit Blog Generator'
+description: 'Generate a static blog from git commit messages'
+author: 'Your Name'
+
+branding:
+  icon: 'book'
+  color: 'purple'
+
+inputs:
+  branch:
+    description: 'Branch to read commits from'
+    required: false
+    default: 'master'
+
+  max-posts:
+    description: 'Maximum number of posts to generate'
+    required: false
+    default: '50'
+
+outputs:
+  output-dir:
+    description: 'Directory containing generated blog'
+    value: 'dist'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        npm install
+
+    - name: Generate blog from commits
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.branch }}
+        MAX_POSTS: ${{ inputs.max-posts }}
+      run: |
+        node ${{ github.action_path }}/generate-blog.js
