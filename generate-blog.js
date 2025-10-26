@@ -89,6 +89,9 @@ async function getCommitImages(git, commitHash) {
 
 // Generate HTML
 function generateHTML(images) {
+  // Count unique commits
+  const uniqueCommits = new Set(images.map(img => img.hash)).size;
+
   const gridHTML = images.length > 0 ? `
     <div class="image-grid">
       ${images.map((image) => `
@@ -123,46 +126,75 @@ function generateHTML(images) {
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       line-height: 1.6;
-      color: #333;
-      background: #fafafa;
-      padding: 20px;
+      color: #fafafa;
+      background: #000;
+      padding: 0;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 935px;
       margin: 0 auto;
     }
 
     header {
-      text-align: center;
-      margin-bottom: 40px;
+      padding: 30px 20px;
+      border-bottom: 1px solid #262626;
+      margin-bottom: 28px;
     }
 
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-      color: #262626;
-      font-weight: 400;
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 80px;
+      max-width: 935px;
+      margin: 0 auto;
     }
 
-    .subtitle {
-      color: #8e8e8e;
-      font-size: 1rem;
+    .profile-pic {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: #262626;
+      flex-shrink: 0;
+    }
+
+    .profile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .profile-username {
+      font-size: 28px;
+      font-weight: 300;
+      color: #fafafa;
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: 40px;
+      font-size: 16px;
+    }
+
+    .profile-stats span {
+      color: #fafafa;
+    }
+
+    .profile-stats strong {
+      font-weight: 600;
     }
 
     .image-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 28px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
     }
 
     .image-item {
       position: relative;
       aspect-ratio: 1;
       overflow: hidden;
-      background: #fff;
-      border: 1px solid #dbdbdb;
-      border-radius: 3px;
+      background: #000;
       cursor: pointer;
     }
 
@@ -221,47 +253,60 @@ function generateHTML(images) {
 
     footer {
       margin-top: 60px;
-      padding-top: 20px;
-      border-top: 1px solid #dbdbdb;
+      padding: 20px;
+      border-top: 1px solid #262626;
       text-align: center;
-      color: #8e8e8e;
-      font-size: 0.9rem;
+      color: #737373;
+      font-size: 0.85rem;
     }
 
     @media (max-width: 768px) {
-      body {
-        padding: 10px;
+      .profile-header {
+        gap: 28px;
+        padding: 0 16px;
       }
 
-      h1 {
-        font-size: 2rem;
+      .profile-pic {
+        width: 77px;
+        height: 77px;
       }
 
-      .image-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 3px;
+      .profile-username {
+        font-size: 24px;
       }
 
-      .image-item {
-        border: none;
-        border-radius: 0;
+      .profile-stats {
+        gap: 20px;
+        font-size: 14px;
+      }
+
+      header {
+        padding: 16px 0;
+        margin-bottom: 12px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Image Gallery</h1>
-      <p class="subtitle">Generated from git commits</p>
-    </header>
+  <header>
+    <div class="profile-header">
+      <div class="profile-pic"></div>
+      <div class="profile-info">
+        <div class="profile-username">username</div>
+        <div class="profile-stats">
+          <span><strong>${uniqueCommits}</strong> posts</span>
+        </div>
+      </div>
+    </div>
+  </header>
 
+  <div class="container">
     <main>
       ${gridHTML}
     </main>
 
     <footer>
-      <p>${images.length} image${images.length !== 1 ? 's' : ''} from commit history</p>
+      <p>${images.length} image${images.length !== 1 ? 's' : ''} from ${uniqueCommits} commit${uniqueCommits !== 1 ? 's' : ''}</p>
     </footer>
   </div>
 </body>
