@@ -4,6 +4,7 @@
   "description": "Generate a static blog from git commit messages",
   "main": "generate-blog.js",
   "dependencies": {
+    "exif-parser": "^0.1.12",
     "simple-git": "^3.25.0"
   }
 }

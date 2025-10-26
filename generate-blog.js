@@ -3,6 +3,7 @@
 const simpleGit = require('simple-git');
 const fs = require('fs');
 const path = require('path');
+const exifParser = require('exif-parser');
 
 const BRANCH = process.env.BRANCH || 'main';
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '50', 10);
@@ -43,6 +44,7 @@ async function getCommits() {
           path: imagePath,
           hash: commit.hash.substring(0, 7),
           title: commit.message.split('\n')[0],
+          caption: getImageCaption(imagePath),
           // Unused for now, but kept for potential future use
           author: commit.author_name,
           date: new Date(commit.date).toLocaleString('en-US', {
@@ -87,6 +89,25 @@ async function getCommitImages(git, commitHash) {
   }
 }
 
+// Extract EXIF ImageDescription from an image file
+function getImageCaption(imagePath) {
+  try {
+    const resolvedPath = path.resolve(imagePath);
+    if (!fs.existsSync(resolvedPath)) {
+      return null;
+    }
+
+    const buffer = fs.readFileSync(resolvedPath);
+    const parser = exifParser.create(buffer);
+    const result = parser.parse();
+
+    return result.tags?.ImageDescription || null;
+  } catch (error) {
+    // EXIF parsing failed (not a JPEG, no EXIF data, etc.)
+    return null;
+  }
+}
+
 // Generate HTML
 function generateHTML(images) {
   // Count unique commits
@@ -100,6 +121,7 @@ function generateHTML(images) {
           <img src="${escapeHTML(image.path)}" alt="${escapeHTML(image.title)}" loading="lazy" />
           <div class="image-overlay">
             <div class="overlay-content">
+              ${image.caption ? `<span class="image-caption">${escapeHTML(image.caption)}</span>` : ''}
               <span class="commit-hash">#${image.hash}</span>
               <span class="commit-title">${escapeHTML(image.title)}</span>
             </div>
@@ -235,13 +257,22 @@ function generateHTML(images) {
       color: white;
       text-align: center;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .image-caption {
+      display: block;
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 4px;
     }
 
     .commit-hash {
       display: block;
       font-family: 'Courier New', monospace;
       font-size: 0.9rem;
-      margin-bottom: 8px;
       opacity: 0.9;
     }
 
