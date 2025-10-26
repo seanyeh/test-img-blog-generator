@@ -10,7 +10,7 @@ inputs:
   branch:
     description: 'Branch to read commits from'
     required: false
-    default: 'master'
+    default: 'main'
 
   max-posts:
     description: 'Maximum number of posts to generate'
