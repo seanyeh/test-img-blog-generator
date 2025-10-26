@@ -4,6 +4,7 @@ const simpleGit = require('simple-git');
 const fs = require('fs');
 const path = require('path');
 const exifParser = require('exif-parser');
+const ejs = require('ejs');
 
 const BRANCH = process.env.BRANCH || 'main';
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '50', 10);
@@ -56,7 +57,6 @@ async function getCommits() {
             second: '2-digit',
             hour12: false,
           }),
-          content: commit.body || commit.message.split('\n')[0],
         });
       });
     }
@@ -108,250 +108,14 @@ function getImageCaption(imagePath) {
   }
 }
 
-// Generate HTML
+// Generate HTML using EJS template
 function generateHTML(images) {
-  // Count unique commits
   const uniqueCommits = new Set(images.map(img => img.hash)).size;
-
-  const gridHTML = images.length > 0 ? `
-    <div class="image-grid">
-      ${images.map((image) => `
-      <div class="image-item">
-        <a href="${escapeHTML(image.path)}" target="_blank">
-          <img src="${escapeHTML(image.path)}" alt="${escapeHTML(image.title)}" loading="lazy" />
-          <div class="image-overlay">
-            <div class="overlay-content">
-              ${image.caption ? `<span class="image-caption">${escapeHTML(image.caption)}</span>` : ''}
-              <span class="commit-hash">#${image.hash}</span>
-              <span class="commit-title">${escapeHTML(image.title)}</span>
-            </div>
-          </div>
-        </a>
-      </div>
-      `).join('')}
-    </div>
-  ` : '<p>No images found in commits.</p>';
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image Gallery</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      line-height: 1.6;
-      color: #fafafa;
-      background: #000;
-      padding: 0;
-    }
-
-    .container {
-      max-width: 935px;
-      margin: 0 auto;
-    }
-
-    header {
-      padding: 30px 20px;
-      border-bottom: 1px solid #262626;
-      margin-bottom: 28px;
-    }
-
-    .profile-header {
-      display: flex;
-      align-items: center;
-      gap: 80px;
-      max-width: 935px;
-      margin: 0 auto;
-    }
-
-    .profile-pic {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      background: #262626;
-      flex-shrink: 0;
-    }
-
-    .profile-info {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .profile-username {
-      font-size: 28px;
-      font-weight: 300;
-      color: #fafafa;
-    }
-
-    .profile-stats {
-      display: flex;
-      gap: 40px;
-      font-size: 16px;
-    }
-
-    .profile-stats span {
-      color: #fafafa;
-    }
-
-    .profile-stats strong {
-      font-weight: 600;
-    }
-
-    .image-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0;
-    }
-
-    .image-item {
-      position: relative;
-      aspect-ratio: 1;
-      overflow: hidden;
-      background: #000;
-      cursor: pointer;
-    }
-
-    .image-item a {
-      display: block;
-      width: 100%;
-      height: 100%;
-      text-decoration: none;
-    }
-
-    .image-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.2s ease;
-    }
-
-    .image-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .image-item:hover .image-overlay {
-      opacity: 1;
-    }
-
-    .overlay-content {
-      color: white;
-      text-align: center;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .image-caption {
-      display: block;
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .commit-hash {
-      display: block;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
-
-    .commit-title {
-      display: block;
-      font-size: 0.95rem;
-      font-weight: 500;
-    }
-
-    footer {
-      margin-top: 60px;
-      padding: 20px;
-      border-top: 1px solid #262626;
-      text-align: center;
-      color: #737373;
-      font-size: 0.85rem;
-    }
-
-    @media (max-width: 768px) {
-      .profile-header {
-        gap: 28px;
-        padding: 0 16px;
-      }
-
-      .profile-pic {
-        width: 77px;
-        height: 77px;
-      }
-
-      .profile-username {
-        font-size: 24px;
-      }
-
-      .profile-stats {
-        gap: 20px;
-        font-size: 14px;
-      }
-
-      header {
-        padding: 16px 0;
-        margin-bottom: 12px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="profile-header">
-      <div class="profile-pic"></div>
-      <div class="profile-info">
-        <div class="profile-username">username</div>
-        <div class="profile-stats">
-          <span><strong>${uniqueCommits}</strong> posts</span>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <div class="container">
-    <main>
-      ${gridHTML}
-    </main>
-
-    <footer>
-      <p>${images.length} image${images.length !== 1 ? 's' : ''} from ${uniqueCommits} commit${uniqueCommits !== 1 ? 's' : ''}</p>
-    </footer>
-  </div>
-</body>
-</html>`;
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  const templatePath = path.join(__dirname, 'template.ejs');
+  return ejs.render(fs.readFileSync(templatePath, 'utf-8'), {
+    images,
+    uniqueCommits
+  });
 }
 
 // Copy images to output directory
