@@ -218,6 +218,20 @@ function copyImagesToOutput(commits) {
   return totalImagesCopied;
 }
 
+// Copy static assets to output directory
+function copyStaticAssets() {
+  const files = ['album.svg'];
+  files.forEach((file) => {
+    const sourcePath = path.join(__dirname, file);
+    const destPath = path.join(OUTPUT_DIR, file);
+    if (fs.existsSync(sourcePath)) {
+      fs.copyFileSync(sourcePath, destPath);
+    } else {
+      console.log(`Warning: Static file not found: ${file}`);
+    }
+  });
+}
+
 // Build gallery JS with esbuild
 async function buildGalleryJS() {
   try {
@@ -254,6 +268,10 @@ async function main() {
   // Build gallery JS with esbuild
   await buildGalleryJS();
   console.log('✓ Built gallery.js');
+
+  // Copy static assets
+  copyStaticAssets();
+  console.log('✓ Copied static assets');
 
   // Copy images to output directory
   const imagesCopied = copyImagesToOutput(commits);

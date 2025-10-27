@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Back square (only bottom and right visible) -->
+  <line x1="21" y1="8" x2="21" y2="19"/>
+  <path d="M 21 19 Q 21 21 19 21" fill="none"/>
+  <line x1="19" y1="21" x2="8" y2="21"/>
+  <!-- Front square (filled) -->
+  <rect x="3" y="3" width="13" height="13" rx="2" fill="currentColor"/>
+</svg>
