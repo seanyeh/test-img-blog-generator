@@ -8,6 +8,7 @@
     "exif-parser": "^0.1.12",
     "image-size": "^2.0.2",
     "photoswipe": "^5.4.4",
+    "photoswipe-dynamic-caption-plugin": "^1.2.7",
     "simple-git": "^3.25.0"
   },
   "devDependencies": {
