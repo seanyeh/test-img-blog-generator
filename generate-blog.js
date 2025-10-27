@@ -181,6 +181,20 @@ function copyImagesToOutput(images) {
   return totalImagesCopied;
 }
 
+// Copy PhotoSwipe static files to output directory
+function copyPhotoSwipeFiles() {
+  const files = ['photoswipe.umd.min.js', 'photoswipe-lightbox.umd.min.js', 'photoswipe.css'];
+  files.forEach((file) => {
+    const sourcePath = path.join(__dirname, file);
+    const destPath = path.join(OUTPUT_DIR, file);
+    if (fs.existsSync(sourcePath)) {
+      fs.copyFileSync(sourcePath, destPath);
+    } else {
+      console.log(`Warning: PhotoSwipe file not found: ${file}`);
+    }
+  });
+}
+
 // Main
 async function main() {
   console.log('Generating image gallery from commits...');
@@ -194,6 +208,10 @@ async function main() {
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
+
+  // Copy PhotoSwipe files to output directory
+  copyPhotoSwipeFiles();
+  console.log('✓ Copied PhotoSwipe files');
 
   // Copy images to output directory
   const imagesCopied = copyImagesToOutput(images);
