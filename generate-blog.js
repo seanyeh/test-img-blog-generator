@@ -6,7 +6,7 @@ const path = require('path');
 const exifParser = require('exif-parser');
 const ejs = require('ejs');
 const esbuild = require('esbuild');
-const sizeOf = require('image-size');
+const { imageSize } = require('image-size');
 
 const BRANCH = process.env.BRANCH || 'main';
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '50', 10);
@@ -130,7 +130,7 @@ function getImageDimensions(imagePath) {
     }
 
     console.log("dimensions found");
-    const dimensions = sizeOf(resolvedPath);
+    const dimensions = imageSize(resolvedPath);
     return {
       width: dimensions.width,
       height: dimensions.height
