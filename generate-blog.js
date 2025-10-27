@@ -106,6 +106,7 @@ function getImageCaption(imagePath) {
   try {
     const resolvedPath = path.resolve(imagePath);
     if (!fs.existsSync(resolvedPath)) {
+      console.log("error getting image caption!");
       return null;
     }
 
