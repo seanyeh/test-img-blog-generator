@@ -214,7 +214,8 @@ async function buildGalleryJS() {
       minify: true,
       outfile: path.join(OUTPUT_DIR, 'gallery.js'),
       format: 'iife',
-      loader: { '.css': 'css' }
+      loader: { '.css': 'css' },
+      logLevel: 'info'
     });
   } catch (error) {
     console.error('Error building gallery.js:', error);
