@@ -38,35 +38,42 @@ async function getCommits() {
 
     console.log(`Commits after filtering [ignore]: ${filteredCommits.length}`);
 
-    // Collect all images with their commit metadata
-    const allImages = [];
+    // Collect commits with their images
+    const commitsWithImages = [];
     for (const commit of filteredCommits) {
-      const images = await getCommitImages(git, commit.hash);
-      images.forEach((imagePath) => {
+      const imagePaths = await getCommitImages(git, commit.hash);
+
+      // Only include commits that have images
+      if (imagePaths.length === 0) continue;
+
+      const images = imagePaths.map((imagePath) => {
         const dimensions = getImageDimensions(imagePath);
-        allImages.push({
+        return {
           path: imagePath,
-          hash: commit.hash.substring(0, 7),
-          title: commit.message.split('\n')[0],
           caption: getImageCaption(imagePath),
           width: dimensions.width,
           height: dimensions.height,
-          // Unused for now, but kept for potential future use
-          author: commit.author_name,
-          date: new Date(commit.date).toLocaleString('en-US', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-          }),
-        });
+        };
+      });
+
+      commitsWithImages.push({
+        hash: commit.hash.substring(0, 7),
+        title: commit.message.split('\n')[0],
+        author: commit.author_name,
+        date: new Date(commit.date).toLocaleString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }),
+        images: images,
       });
     }
 
-    return allImages;
+    return commitsWithImages;
   } catch (error) {
     console.error('Error fetching commits:', error.message);
     process.exit(1);
@@ -150,14 +157,12 @@ function loadConfig() {
 }
 
 // Generate HTML using EJS template
-function generateHTML(images, data) {
-  const uniqueCommits = new Set(images.map(img => img.hash)).size;
+function generateHTML(commits, data) {
   const templatePath = path.join(__dirname, 'template.ejs');
 
   // Prepare template data
   const templateData = {
-    images,
-    uniqueCommits,
+    commits,
     data: data || {}
   };
 
@@ -180,26 +185,28 @@ function generateHTML(images, data) {
 }
 
 // Copy images to output directory
-function copyImagesToOutput(images) {
+function copyImagesToOutput(commits) {
   let totalImagesCopied = 0;
 
-  images.forEach((image) => {
-    const sourcePath = path.resolve(image.path);
-    const destPath = path.join(OUTPUT_DIR, image.path);
+  commits.forEach((commit) => {
+    commit.images.forEach((image) => {
+      const sourcePath = path.resolve(image.path);
+      const destPath = path.join(OUTPUT_DIR, image.path);
 
-    // Create directory structure if needed
-    const destDir = path.dirname(destPath);
-    if (!fs.existsSync(destDir)) {
-      fs.mkdirSync(destDir, { recursive: true });
-    }
+      // Create directory structure if needed
+      const destDir = path.dirname(destPath);
+      if (!fs.existsSync(destDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+      }
 
-    // Copy image file if it exists
-    if (fs.existsSync(sourcePath)) {
-      fs.copyFileSync(sourcePath, destPath);
-      totalImagesCopied++;
-    } else {
-      console.log(`Warning: Image not found: ${image.path}`);
-    }
+      // Copy image file if it exists
+      if (fs.existsSync(sourcePath)) {
+        fs.copyFileSync(sourcePath, destPath);
+        totalImagesCopied++;
+      } else {
+        console.log(`Warning: Image not found: ${image.path}`);
+      }
+    });
   });
 
   return totalImagesCopied;
@@ -230,8 +237,9 @@ async function main() {
   // Load config if it exists
   const data = loadConfig();
 
-  const images = await getCommits();
-  console.log(`Found ${images.length} image${images.length !== 1 ? 's' : ''}`);
+  const commits = await getCommits();
+  const totalImages = commits.reduce((sum, commit) => sum + commit.images.length, 0);
+  console.log(`Found ${commits.length} commit${commits.length !== 1 ? 's' : ''} with ${totalImages} image${totalImages !== 1 ? 's' : ''}`);
 
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -242,7 +250,7 @@ async function main() {
   console.log('✓ Built gallery.js');
 
   // Copy images to output directory
-  const imagesCopied = copyImagesToOutput(images);
+  const imagesCopied = copyImagesToOutput(commits);
   if (imagesCopied > 0) {
     console.log(`✓ Copied ${imagesCopied} image${imagesCopied !== 1 ? 's' : ''} to ${OUTPUT_DIR}`);
   }
@@ -261,12 +269,12 @@ async function main() {
     }
   }
 
-  const html = generateHTML(images, data);
+  const html = generateHTML(commits, data);
   const outputPath = path.join(OUTPUT_DIR, 'index.html');
   fs.writeFileSync(outputPath, html, 'utf-8');
 
   console.log(`✓ Gallery generated at ${outputPath}`);
-  console.log(`✓ Total images: ${images.length}`);
+  console.log(`✓ Total: ${commits.length} commit${commits.length !== 1 ? 's' : ''}, ${totalImages} image${totalImages !== 1 ? 's' : ''}`);
 }
 
 main();
