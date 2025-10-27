@@ -136,6 +136,8 @@ function getImageDimensions(imagePath) {
       height: dimensions.height
     };
   } catch (error) {
+    console.log("dimensions error");
+    console.log(error);
     // If we can't read dimensions, return default square
     return { width: 800, height: 800 };
   }
