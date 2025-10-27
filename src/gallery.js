@@ -4,7 +4,7 @@ import 'photoswipe/style.css';
 import PhotoSwipeDynamicCaption from 'photoswipe-dynamic-caption-plugin';
 
 // Initialize PhotoSwipe for all galleries
-document.querySelectorAll('.image-grid').forEach((gallery) => {
+document.querySelectorAll('.image-grid').forEach((gallery, index) => {
   const galleryId = gallery.getAttribute('data-gallery');
   const lightbox = new PhotoSwipeLightbox({
     gallery: `[data-gallery="${galleryId}"]`,
@@ -15,6 +15,7 @@ document.querySelectorAll('.image-grid').forEach((gallery) => {
   const captionPlugin = new PhotoSwipeDynamicCaption(lightbox, {
     // Plugins options, for example:
     type: 'auto',
+    captionContent: `.pswp-caption-content-${index}`,
   });
 
   lightbox.init();
