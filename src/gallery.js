@@ -2,6 +2,7 @@ import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
 
 import PhotoSwipeDynamicCaption from 'photoswipe-dynamic-caption-plugin';
+import 'photoswipe-dynamic-caption-plugin/photoswipe-dynamic-caption-plugin.css';
 
 // Initialize PhotoSwipe for all galleries
 document.querySelectorAll('.image-grid').forEach((gallery, index) => {
