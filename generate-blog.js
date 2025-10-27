@@ -130,7 +130,8 @@ function getImageDimensions(imagePath) {
     }
 
     console.log("dimensions found");
-    const dimensions = imageSize(resolvedPath);
+    const buffer = fs.readFileSync(resolvedPath);
+    const dimensions = imageSize(buffer);
     return {
       width: dimensions.width,
       height: dimensions.height
