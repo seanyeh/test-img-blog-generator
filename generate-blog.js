@@ -218,20 +218,6 @@ function copyImagesToOutput(commits, outputDir) {
   return totalImagesCopied;
 }
 
-// Copy static assets to output directory
-function copyStaticAssets(outputDir) {
-  const files = ['album.svg'];
-  files.forEach((file) => {
-    const sourcePath = path.join(__dirname, file);
-    const destPath = path.join(outputDir, file);
-    if (fs.existsSync(sourcePath)) {
-      fs.copyFileSync(sourcePath, destPath);
-    } else {
-      console.log(`Warning: Static file not found: ${file}`);
-    }
-  });
-}
-
 // Build gallery JS with esbuild
 async function buildGalleryJS(outputDir) {
   try {
@@ -261,10 +247,6 @@ async function generateToDirectory(commits, data, outputDir) {
   // Build gallery JS with esbuild
   await buildGalleryJS(outputDir);
   console.log('✓ Built gallery.js');
-
-  // Copy static assets
-  copyStaticAssets(outputDir);
-  console.log('✓ Copied static assets');
 
   // Copy images to output directory
   const imagesCopied = copyImagesToOutput(commits, outputDir);
