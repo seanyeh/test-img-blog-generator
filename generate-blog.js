@@ -191,13 +191,13 @@ function generateHTML(commits, data) {
 }
 
 // Copy images to output directory
-function copyImagesToOutput(commits) {
+function copyImagesToOutput(commits, outputDir) {
   let totalImagesCopied = 0;
 
   commits.forEach((commit) => {
     commit.images.forEach((image) => {
       const sourcePath = path.resolve(image.path);
-      const destPath = path.join(OUTPUT_DIR, image.path);
+      const destPath = path.join(outputDir, image.path);
 
       // Create directory structure if needed
       const destDir = path.dirname(destPath);
@@ -219,11 +219,11 @@ function copyImagesToOutput(commits) {
 }
 
 // Copy static assets to output directory
-function copyStaticAssets() {
+function copyStaticAssets(outputDir) {
   const files = ['album.svg'];
   files.forEach((file) => {
     const sourcePath = path.join(__dirname, file);
-    const destPath = path.join(OUTPUT_DIR, file);
+    const destPath = path.join(outputDir, file);
     if (fs.existsSync(sourcePath)) {
       fs.copyFileSync(sourcePath, destPath);
     } else {
@@ -233,13 +233,13 @@ function copyStaticAssets() {
 }
 
 // Build gallery JS with esbuild
-async function buildGalleryJS() {
+async function buildGalleryJS(outputDir) {
   try {
     await esbuild.build({
       entryPoints: [path.join(__dirname, 'src/gallery.js')],
       bundle: true,
       minify: true,
-      outfile: path.join(OUTPUT_DIR, 'gallery.js'),
+      outfile: path.join(outputDir, 'gallery.js'),
       format: 'iife',
       loader: { '.css': 'css' },
       logLevel: 'info'
@@ -248,6 +248,49 @@ async function buildGalleryJS() {
     console.error('Error building gallery.js:', error);
     process.exit(1);
   }
+}
+
+// Generate gallery to a specific output directory
+async function generateToDirectory(commits, data, outputDir) {
+  console.log(`\nGenerating to ${outputDir}...`);
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  // Build gallery JS with esbuild
+  await buildGalleryJS(outputDir);
+  console.log('✓ Built gallery.js');
+
+  // Copy static assets
+  copyStaticAssets(outputDir);
+  console.log('✓ Copied static assets');
+
+  // Copy images to output directory
+  const imagesCopied = copyImagesToOutput(commits, outputDir);
+  if (imagesCopied > 0) {
+    console.log(`✓ Copied ${imagesCopied} image${imagesCopied !== 1 ? 's' : ''}`);
+  }
+
+  // Copy avatar to output directory if it exists
+  if (data && data.avatar) {
+    const avatarPath = path.resolve(data.avatar);
+    if (fs.existsSync(avatarPath)) {
+      const destPath = path.join(outputDir, data.avatar);
+      const destDir = path.dirname(destPath);
+      if (!fs.existsSync(destDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+      }
+      fs.copyFileSync(avatarPath, destPath);
+      console.log(`✓ Copied avatar`);
+    }
+  }
+
+  const html = generateHTML(commits, data);
+  const outputPath = path.join(outputDir, 'index.html');
+  fs.writeFileSync(outputPath, html, 'utf-8');
+
+  console.log(`✓ Gallery generated at ${outputPath}`);
 }
 
 // Main
@@ -261,43 +304,18 @@ async function main() {
   const totalImages = commits.reduce((sum, commit) => sum + commit.images.length, 0);
   console.log(`Found ${commits.length} commit${commits.length !== 1 ? 's' : ''} with ${totalImages} image${totalImages !== 1 ? 's' : ''}`);
 
-  if (!fs.existsSync(OUTPUT_DIR)) {
-    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  // Default to empty string prefix if not specified
+  const prefixes = (data && Array.isArray(data.prefixes) && data.prefixes.length > 0)
+    ? data.prefixes
+    : [""];
+
+  // Generate for each prefix
+  for (const prefix of prefixes) {
+    const outputDir = path.join(OUTPUT_DIR, prefix);
+    await generateToDirectory(commits, data, outputDir);
   }
 
-  // Build gallery JS with esbuild
-  await buildGalleryJS();
-  console.log('✓ Built gallery.js');
-
-  // Copy static assets
-  copyStaticAssets();
-  console.log('✓ Copied static assets');
-
-  // Copy images to output directory
-  const imagesCopied = copyImagesToOutput(commits);
-  if (imagesCopied > 0) {
-    console.log(`✓ Copied ${imagesCopied} image${imagesCopied !== 1 ? 's' : ''} to ${OUTPUT_DIR}`);
-  }
-
-  // Copy avatar to output directory if it exists
-  if (data && data.avatar) {
-    const avatarPath = path.resolve(data.avatar);
-    if (fs.existsSync(avatarPath)) {
-      const destPath = path.join(OUTPUT_DIR, data.avatar);
-      const destDir = path.dirname(destPath);
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
-      }
-      fs.copyFileSync(avatarPath, destPath);
-      console.log(`✓ Copied avatar to ${OUTPUT_DIR}`);
-    }
-  }
-
-  const html = generateHTML(commits, data);
-  const outputPath = path.join(OUTPUT_DIR, 'index.html');
-  fs.writeFileSync(outputPath, html, 'utf-8');
-
-  console.log(`✓ Gallery generated at ${outputPath}`);
+  console.log(`\n✓ Generated ${prefixes.length} prefix${prefixes.length !== 1 ? 'es' : ''}`);
   console.log(`✓ Total: ${commits.length} commit${commits.length !== 1 ? 's' : ''}, ${totalImages} image${totalImages !== 1 ? 's' : ''}`);
 }
 
