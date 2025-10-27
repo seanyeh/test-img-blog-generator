@@ -108,14 +108,50 @@ function getImageCaption(imagePath) {
   }
 }
 
+// Load config.json if it exists
+function loadConfig() {
+  const configPath = path.join(__dirname, 'config.json');
+  if (fs.existsSync(configPath)) {
+    try {
+      const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      console.log('✓ Loaded config.json');
+      return configData;
+    } catch (error) {
+      console.log(`Warning: Could not parse config.json: ${error.message}`);
+      return null;
+    }
+  }
+  return null;
+}
+
 // Generate HTML using EJS template
-function generateHTML(images) {
+function generateHTML(images, data) {
   const uniqueCommits = new Set(images.map(img => img.hash)).size;
   const templatePath = path.join(__dirname, 'template.ejs');
-  return ejs.render(fs.readFileSync(templatePath, 'utf-8'), {
+
+  // Prepare template data
+  const templateData = {
     images,
-    uniqueCommits
-  });
+    uniqueCommits,
+    data: data || {}
+  };
+
+  // Validate avatar path if provided
+  if (data && data.avatar) {
+    const avatarPath = path.resolve(data.avatar);
+    if (!fs.existsSync(avatarPath)) {
+      console.log(`Warning: Avatar file not found: ${data.avatar}`);
+      templateData.data.avatar = null;
+    }
+  }
+
+  // Store prefixes if they exist and are an array
+  if (data && Array.isArray(data.prefixes)) {
+    templateData.prefixes = data.prefixes;
+    console.log(`✓ Loaded ${data.prefixes.length} prefix(es) from config`);
+  }
+
+  return ejs.render(fs.readFileSync(templatePath, 'utf-8'), templateData);
 }
 
 // Copy images to output directory
@@ -148,6 +184,9 @@ function copyImagesToOutput(images) {
 async function main() {
   console.log('Generating image gallery from commits...');
 
+  // Load config if it exists
+  const data = loadConfig();
+
   const images = await getCommits();
   console.log(`Found ${images.length} image${images.length !== 1 ? 's' : ''}`);
 
@@ -161,7 +200,21 @@ async function main() {
     console.log(`✓ Copied ${imagesCopied} image${imagesCopied !== 1 ? 's' : ''} to ${OUTPUT_DIR}`);
   }
 
-  const html = generateHTML(images);
+  // Copy avatar to output directory if it exists
+  if (data && data.avatar) {
+    const avatarPath = path.resolve(data.avatar);
+    if (fs.existsSync(avatarPath)) {
+      const destPath = path.join(OUTPUT_DIR, data.avatar);
+      const destDir = path.dirname(destPath);
+      if (!fs.existsSync(destDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+      }
+      fs.copyFileSync(avatarPath, destPath);
+      console.log(`✓ Copied avatar to ${OUTPUT_DIR}`);
+    }
+  }
+
+  const html = generateHTML(images, data);
   const outputPath = path.join(OUTPUT_DIR, 'index.html');
   fs.writeFileSync(outputPath, html, 'utf-8');
 

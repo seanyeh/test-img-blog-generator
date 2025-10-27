@@ -44,6 +44,7 @@
       border-radius: 50%;
       background: #262626;
       flex-shrink: 0;
+      object-fit: cover;
     }
 
     .profile-info {
@@ -187,9 +188,13 @@
 <body>
   <header>
     <div class="profile-header">
+      <% if (data.avatar) { %>
+      <img class="profile-pic" src="<%= data.avatar %>" alt="Profile picture" />
+      <% } else { %>
       <div class="profile-pic"></div>
+      <% } %>
       <div class="profile-info">
-        <div class="profile-username">username</div>
+        <div class="profile-username"><%= data.name || 'username' %></div>
         <div class="profile-stats">
           <span><strong><%= uniqueCommits %></strong> posts</span>
         </div>
