@@ -123,7 +123,7 @@ function getImageCaption(imagePath) {
 // Get image dimensions
 function getImageDimensions(imagePath) {
   try {
-    const resolvedPath = path.resolve(imagePath);
+    const resolvedPath = path.resolve(process.cwd(), imagePath);
     if (!fs.existsSync(resolvedPath)) {
       return { width: 800, height: 800 }; // default square
     }
