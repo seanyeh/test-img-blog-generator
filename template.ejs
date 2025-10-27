@@ -102,53 +102,6 @@
       transition: transform 0.2s ease;
     }
 
-    .image-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .image-item:hover .image-overlay {
-      opacity: 1;
-    }
-
-    .overlay-content {
-      color: white;
-      text-align: center;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .image-caption {
-      display: block;
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .commit-hash {
-      display: block;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
-
-    .commit-title {
-      display: block;
-      font-size: 0.95rem;
-      font-weight: 500;
-    }
-
     footer {
       margin-top: 60px;
       padding: 20px;
@@ -208,17 +161,10 @@
       <div class="image-grid">
         <% images.forEach(function(image) { %>
         <div class="image-item">
-          <a href="<%= image.path %>" target="_blank">
+          <a href="<%= image.path %>"
+             data-pswp-width="<%= image.width %>"
+             data-pswp-height="<%= image.height %>">
             <img src="<%= image.path %>" alt="<%= image.title %>" loading="lazy" />
-            <div class="image-overlay">
-              <div class="overlay-content">
-                <% if (image.caption) { %>
-                <span class="image-caption"><%= image.caption %></span>
-                <% } %>
-                <span class="commit-hash">#<%= image.hash %></span>
-                <span class="commit-title"><%= image.title %></span>
-              </div>
-            </div>
           </a>
         </div>
         <% }); %>
@@ -231,18 +177,6 @@
     <footer>
       <p><%= images.length %> image<%= images.length !== 1 ? 's' : '' %> from <%= uniqueCommits %> commit<%= uniqueCommits !== 1 ? 's' : '' %></p>
     </footer>
-  </div>
-
-  <div class="test-gallery">
-    <a href="https://dummyimage.com/1200x600/000/fff" data-pswp-width="1200" data-pswp-height="600">
-      <img src="https://dummyimage.com/120x60/000/fff" alt="" />
-    </a>
-    <a href="https://dummyimage.com/1200x1200/000/fff" data-pswp-width="1200" data-pswp-height="1200">
-      <img src="https://dummyimage.com/60x60/000/fff" alt="" />
-    </a>
-    <a href="https://dummyimage.com/600x1200/000/fff" data-pswp-width="600" data-pswp-height="1200">
-      <img src="https://dummyimage.com/30x60/000/fff" alt="" />
-    </a>
   </div>
 
   <script src="gallery.js"></script>

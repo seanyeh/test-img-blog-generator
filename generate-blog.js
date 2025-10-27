@@ -6,6 +6,7 @@ const path = require('path');
 const exifParser = require('exif-parser');
 const ejs = require('ejs');
 const esbuild = require('esbuild');
+const sizeOf = require('image-size');
 
 const BRANCH = process.env.BRANCH || 'main';
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '50', 10);
@@ -42,11 +43,14 @@ async function getCommits() {
     for (const commit of filteredCommits) {
       const images = await getCommitImages(git, commit.hash);
       images.forEach((imagePath) => {
+        const dimensions = getImageDimensions(imagePath);
         allImages.push({
           path: imagePath,
           hash: commit.hash.substring(0, 7),
           title: commit.message.split('\n')[0],
           caption: getImageCaption(imagePath),
+          width: dimensions.width,
+          height: dimensions.height,
           // Unused for now, but kept for potential future use
           author: commit.author_name,
           date: new Date(commit.date).toLocaleString('en-US', {
@@ -106,6 +110,25 @@ function getImageCaption(imagePath) {
   } catch (error) {
     // EXIF parsing failed (not a JPEG, no EXIF data, etc.)
     return null;
+  }
+}
+
+// Get image dimensions
+function getImageDimensions(imagePath) {
+  try {
+    const resolvedPath = path.resolve(imagePath);
+    if (!fs.existsSync(resolvedPath)) {
+      return { width: 800, height: 800 }; // default square
+    }
+
+    const dimensions = sizeOf(resolvedPath);
+    return {
+      width: dimensions.width,
+      height: dimensions.height
+    };
+  } catch (error) {
+    // If we can't read dimensions, return default square
+    return { width: 800, height: 800 };
   }
 }
 
