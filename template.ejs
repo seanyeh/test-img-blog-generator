@@ -192,6 +192,9 @@
             </a>
           </div>
           <% }); %>
+          <% if (commit.images.length > 1) { %>
+          <img src="album.svg" class="album-icon" alt="Multiple images" />
+          <% } %>
         </div>
         <% }); %>
       <% } else { %>
