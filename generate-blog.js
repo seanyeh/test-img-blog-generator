@@ -125,9 +125,11 @@ function getImageDimensions(imagePath) {
   try {
     const resolvedPath = path.resolve(process.cwd(), imagePath);
     if (!fs.existsSync(resolvedPath)) {
+      console.log("couldn't find image path for dimensions");
       return { width: 800, height: 800 }; // default square
     }
 
+    console.log("dimensions found");
     const dimensions = sizeOf(resolvedPath);
     return {
       width: dimensions.width,
