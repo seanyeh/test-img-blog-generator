@@ -74,13 +74,13 @@
       font-weight: 600;
     }
 
-    .image-grid {
+    main {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 0;
     }
 
-    .image-item {
+    .image-grid {
       position: relative;
       aspect-ratio: 1;
       overflow: hidden;
@@ -90,6 +90,11 @@
 
     .image-item:not(:first-child) {
       display: none;
+    }
+
+    .image-item {
+      width: 100%;
+      height: 100%;
     }
 
     .image-item a {
