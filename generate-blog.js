@@ -110,7 +110,8 @@ function getImageCaption(imagePath) {
 
 // Load config.json if it exists
 function loadConfig() {
-  const configPath = path.join(__dirname, 'config.json');
+  console.log("loadConfig");
+  const configPath = path.join(process.cwd(), 'config.json');
   if (fs.existsSync(configPath)) {
     try {
       const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
