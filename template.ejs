@@ -182,9 +182,6 @@
       <% if (commits.length > 0) { %>
         <% commits.forEach(function(commit, commitIndex) { %>
         <div class="image-grid" data-gallery="gallery-<%= commitIndex %>">
-          <% if (commit.images.length > 1) { %>
-          <img src="album.svg" class="album-icon" alt="Multiple images" />
-          <% } %>
           <% commit.images.forEach(function(image) { %>
           <div class="image-item">
             <a href="<%= image.path %>"
