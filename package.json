@@ -8,5 +8,8 @@
     "exif-parser": "^0.1.12",
     "photoswipe": "^5.4.4",
     "simple-git": "^3.25.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.11"
   }
 }

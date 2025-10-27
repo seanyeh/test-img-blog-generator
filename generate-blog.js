@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const exifParser = require('exif-parser');
 const ejs = require('ejs');
+const esbuild = require('esbuild');
 
 const BRANCH = process.env.BRANCH || 'main';
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '50', 10);
@@ -181,18 +182,21 @@ function copyImagesToOutput(images) {
   return totalImagesCopied;
 }
 
-// Copy PhotoSwipe static files to output directory
-function copyPhotoSwipeFiles() {
-  const files = ['photoswipe.umd.min.js', 'photoswipe-lightbox.umd.min.js', 'photoswipe.css'];
-  files.forEach((file) => {
-    const sourcePath = path.join(__dirname, file);
-    const destPath = path.join(OUTPUT_DIR, file);
-    if (fs.existsSync(sourcePath)) {
-      fs.copyFileSync(sourcePath, destPath);
-    } else {
-      console.log(`Warning: PhotoSwipe file not found: ${file}`);
-    }
-  });
+// Build gallery JS with esbuild
+async function buildGalleryJS() {
+  try {
+    await esbuild.build({
+      entryPoints: [path.join(__dirname, 'src/gallery.js')],
+      bundle: true,
+      minify: true,
+      outfile: path.join(OUTPUT_DIR, 'gallery.js'),
+      format: 'iife',
+      loader: { '.css': 'css' }
+    });
+  } catch (error) {
+    console.error('Error building gallery.js:', error);
+    process.exit(1);
+  }
 }
 
 // Main
@@ -209,9 +213,9 @@ async function main() {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  // Copy PhotoSwipe files to output directory
-  copyPhotoSwipeFiles();
-  console.log('✓ Copied PhotoSwipe files');
+  // Build gallery JS with esbuild
+  await buildGalleryJS();
+  console.log('✓ Built gallery.js');
 
   // Copy images to output directory
   const imagesCopied = copyImagesToOutput(images);
